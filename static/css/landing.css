@@ -1,0 +1,52 @@
+
+.landing {
+	min-height: 100%;
+}
+.landing h1,h2 {
+	font-family: 'MYRIADPROBOLDCOND', 'Helvetica', 'Arial';
+}
+.landing h1.hidden-desktop,h2.hidden-desktop {
+	font-size: 50px;
+}
+.landing h1.visible-desktop {
+	font-size: 100px;
+}
+.landing h2.visible-desktop {
+	font-size: 80px;
+}
+.landing.language-bar {
+	font-size: 50px;
+	font-family: 'MYRIADPROBOLDCOND', 'Helvetica', 'Arial';
+}
+.landing.language-bar ul {
+	list-style: none outside none;
+}
+.landing.language-bar li {
+	padding-top: 20px;
+}
+
+
+/* fonts */
+
+@font-face {
+	font-family: 'Franchise3';
+	src: url('../fonts/franchise-bold-webfont3.eot');
+	src: local('☺'), url('../fonts/franchise-bold-webfont3.svg') format('svg'), url('../fonts/franchise-bold-webfont3.woff') format('woff'), url('../fonts/franchise-bold-webfont3.ttf') format('truetype');
+	src: url('../fonts/franchise-bold-webfont3.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+
+@font-face {
+	font-family: 'MYRIADPROBOLDCOND';
+	src: url('../fonts/MYRIADPRO-BOLDCOND.eot');
+	src: local('☺'), url('../fonts/MYRIADPRO-BOLDCOND.woff') format('woff'), url('../fonts/MYRIADPRO-BOLDCOND.ttf') format('truetype'), url('../fonts/MYRIADPRO-BOLDCOND.svg') format('svg');
+	src: url('../fonts/MYRIADPRO-BOLDCOND.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+
+
+/* end: fonts */
