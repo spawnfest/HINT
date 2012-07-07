@@ -1,4 +1,5 @@
 %% -*- erlang-indent-level: 2 -*-
+%% vim:ft=erlang:expandtab:ts=8:sw=2:
 %%-----------------------------------------------------------------------
 %% %CopyrightBegin%
 %%
@@ -28,9 +29,10 @@
 %%               annotate the code of files with such type information.
 %%-----------------------------------------------------------------------
 
--module(typer).
+-module(typer_guts).
 
 -export([start/0]).
+-compile(export_all).
 
 %%-----------------------------------------------------------------------
 
@@ -600,8 +602,6 @@ analyze_args(ArgList, Args, Analysis) ->
 
 cl(["-h"|_])     -> help_message();
 cl(["--help"|_]) -> help_message();
-cl(["-v"|_])        -> version_message();
-cl(["--version"|_]) -> version_message();
 cl(["--edoc"|Opts]) -> {edoc, Opts};
 cl(["--show"|Opts]) -> {{mode, ?SHOW}, Opts};
 cl(["--show_exported"|Opts]) -> {{mode, ?SHOW_EXPORTED}, Opts};
@@ -1013,12 +1013,6 @@ msg(Msg) ->
 %% Version and help messages.
 %%--------------------------------------------------------------------
 
--spec version_message() -> no_return().
-
-version_message() ->
-  io:format("TypEr version "++?VSN++"\n"),
-  erlang:halt(0).
-
 -spec help_message() -> no_return().
 
 help_message() ->
@@ -1118,3 +1112,34 @@ map__remove(Key, Dict) ->
 -spec map__fold(fun((term(), term(), term()) -> map()), map(), map()) -> map().
 map__fold(Fun, Acc0, Dict) -> 
   dict:fold(Fun, Acc0, Dict).
+
+%% HINT hacks
+
+hack_start(Files) ->
+  Args = #args{ files=Files },
+  Analysis = #analysis{ mode=?SHOW_EXPORTED },
+  TrustedFiles = filter_fd(Args#args.trusted, [], fun is_erl_file/1),
+  Analysis2 = extract(Analysis, TrustedFiles),
+  All_Files = get_all_files(Args),
+  Analysis3 = Analysis2#analysis{files = All_Files},
+  Analysis4 = collect_info(Analysis3),
+  TypeInfo = get_type_info(Analysis4),
+  Fun = fun ({File,Mod}) ->
+      Inf = get_final_info(File, Mod, TypeInfo),
+      FIndex = fun({_LiNo, F, A}) ->
+          TI = get_type_info({F,A}, Inf#info.types),
+          TS = case TI of
+            {contract, {_, Constr, _FArgs, _Forms}} -> 
+              %[iolist_to_binary(erl_types:t_to_string(Ai)) || {Ai,_} <- Constr];
+              [{FType,_}] = Constr,
+              FTA = erl_types:subst_all_vars_to_any(FType),
+              [erl_types:t_fun_range(FTA) | erl_types:t_fun_args(FTA)];
+            {RetType, ArgTypes} ->
+              [RetType | ArgTypes]
+          end,
+          {{Mod,F,A}, TS}
+      end,
+      lists:map(FIndex, Inf#info.functions)
+  end,
+  lists:flatten(lists:map(Fun, TypeInfo#analysis.fms)).
+
