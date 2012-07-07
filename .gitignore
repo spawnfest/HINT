@@ -1,0 +1,5 @@
+apps/*/ebin/*
+rel/*
+!rel/files
+!rel/reltool.config
+*.draft.*
