@@ -3,7 +3,7 @@
 %%% @copyright 2012 HINT Spawnfest Team
 %%%-------------------------------------------------------------------
 
--module(importer).
+-module(hint_importer).
 -export([import/1, import/2]).
 -export([import_to_file/2, import_to_file/3]).
 

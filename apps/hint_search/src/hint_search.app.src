@@ -1,0 +1,12 @@
+{application, hint_search,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { hint_search_app, []}},
+  {env, []}
+ ]}.
