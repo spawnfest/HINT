@@ -1,5 +1,5 @@
 
--module(myapp_sup).
+-module(hint_importer_sup).
 
 -behaviour(supervisor).
 

@@ -978,9 +978,9 @@ get_exported_types_from_core(Core) ->
 
 -spec fatal_error(string()) -> no_return().
 
+%% HINT hacks
 fatal_error(Slogan) ->
-  msg(io_lib:format("typer: ~s\n", [Slogan])),
-  erlang:halt(1).
+  erlang:error({?MODULE, Slogan}).
 
 -spec mode_error(mode(), mode()) -> no_return().
 

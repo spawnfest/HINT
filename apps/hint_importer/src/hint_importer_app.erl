@@ -1,4 +1,4 @@
--module(myapp_app).
+-module(hint_importer_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    myapp_sup:start_link().
+    hint_importer_sup:start_link().
 
 stop(_State) ->
     ok.
