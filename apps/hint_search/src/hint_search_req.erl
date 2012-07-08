@@ -28,6 +28,28 @@
 -module(hint_search_req).
 
 -export([parse/1, test/0]).
+-export([new/1, module/1, func/1, arity/1, string/1]).
+
+-record(req, {
+		mod, 
+		func,
+		arity = 0,
+		string = ""
+		}).
+
+new(Request) ->
+	{M, F, A, S} = parse(Request),
+	#req { 
+		mod=M, 
+		func=F, 
+		arity=A, 
+		string=S
+	}.
+
+module(Req) -> Req#req.mod.
+func(Req) -> Req#req.func.
+arity(Req) -> Req#req.arity.
+string(Req) -> Req#req.string.
 
 %% Bullet point 1.
 parse(String) ->

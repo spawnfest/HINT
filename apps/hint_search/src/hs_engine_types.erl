@@ -43,7 +43,8 @@ generate_magic_file(Req) ->
 	{ok, Magic2F, [Header, Bodies]}.
 
 gen_magic_header() ->
-	["-module('",temp_mod_name(),"').\n"].
+	["-module('",temp_mod_name(),"').\n",
+		"-compile(export_all)\n\n"].
 
 funcs_with_arity(A) 
 	when is_integer(A) ->
