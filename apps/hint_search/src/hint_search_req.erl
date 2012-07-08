@@ -27,38 +27,46 @@
 
 -module(hint_search_req).
 
+%%% Exports
 -export([parse/1, test/0]).
 -export([new/1, module/1, func/1, arity/1, string/1]).
 
--record(req, {
-		mod, 
-		func,
-		arity = 0,
-		string = ""
-		}).
+%%% Defines
 
-new(Request) ->
-	{M, F, A, S} = parse(Request),
-	#req { 
-		mod=M, 
-		func=F, 
-		arity=A, 
-		string=S
-	}.
+-record(req, { mod
+             , func
+             , arity = 0
+             , string = ""
+             }).
 
-module(Req) -> Req#req.mod.
-func(Req) -> Req#req.func.
-arity(Req) -> Req#req.arity.
-string(Req) -> Req#req.string.
+%%% API
 
-%% Bullet point 1.
 parse(String) ->
   parse_module(lists:flatten(String), []).
 
-parse_module([$:|T], Acc) ->
-  Mod = lists:reverse(Acc),
+new(Request) ->
+	{M, F, A, S} = parse(Request),
+	#req { mod=M
+	     , func=F
+	     , arity=A
+	     , string=S
+	     }.
+
+module(Req) -> Req#req.mod.
+func(Req)   -> Req#req.func.
+arity(Req)  -> Req#req.arity.
+string(Req) -> Req#req.string.
+
+%%% Internal
+
+%% Bullet point 1.
+parse_module([$:|T], Acc)        ->
+  Mod = list_to_atom(lists:reverse(Acc)),
   {Func, Arity, Rest} = parse_func(T),
-  {list_to_atom(Mod), list_to_atom(Func), Arity, Rest};
+  {Mod, Func, Arity, Rest};
+parse_module([$(|T] = Rest, Acc) ->
+  {Func, Arity, Rest} = parse_func(Rest, Acc),
+	{[], Func, Arity, Rest};
 parse_module([H|T], Acc)  ->
   parse_module(T, [H | Acc]).
 
@@ -66,10 +74,11 @@ parse_module([H|T], Acc)  ->
 parse_func(L) ->
   parse_func(L, []).
 
+parse_func([$(|T] = Rest, [])  ->
+  {[], parse_arity(T), Rest};
 parse_func([$(|T] = Rest, Acc) ->
-  Func = lists:reverse(Acc),
-  Arity = parse_arity(T),
-  {Func, Arity, Rest};
+  Func = list_to_atom(lists:reverse(Acc)),
+  {Func, parse_arity(T), Rest};
 parse_func([H|T], Acc)  ->
   parse_func(T, [H | Acc]).
 
@@ -105,5 +114,10 @@ test() ->
     parse([ "mod:func([A],{A,B},list(), any(), some_type({A,list(),B})) -> "
           , "ok | error."]),
   {mod, func, 2, _} = parse("mod:func(A, type()) when A::list() -> ok | error."),
+  {[],  func, 0, _} = parse("func()"),
+  {[],  func, 1, _} = parse("func(a)"),
+  {[],  func, 2, _} = parse("func(A, type()) when A::list() -> ok | error."),
+  {mod, [],   0, _} = parse("mod:()"),
+  {mod, [],   1, _} = parse("mod:(a)"),
+  {mod, [],   2, _} = parse("mod:(A, type()) when A::list() -> ok | error."),
   ok.
-
