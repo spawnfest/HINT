@@ -7,6 +7,7 @@
     3.2 Use your own PLT  
     3.3 See some results on the command line  
 4. Weak points and future solutions
+5. DEMO
 
 # 1. WHAT IS IT?
 
@@ -135,3 +136,17 @@ Once we receive a request, we do the following:
     Solution:  
     - precompute permutations when loading PLT on startup  
     - save files with premutations for more common searches  
+
+# 5. DEMO
+
+1. Start web.sh
+2. Go to http://127.0.0.1/52012
+
+Give some time for web.sh to start completely. If it doesn't work, clean && compile && run.
+
+3. Demo URLs (on Monday):  
+- http://memorici.de:52012
+- http://booktu.com
+
+One of these will work :)
+
