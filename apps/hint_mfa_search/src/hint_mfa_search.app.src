@@ -1,4 +1,4 @@
-{application, hint_importer,
+{application, hint_mfa_search,
  [
   {description, ""},
   {vsn, "1"},
@@ -7,6 +7,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { hint_importer_app, []}},
+  {mod, { hint_mfa_search_app, []}},
   {env, []}
  ]}.

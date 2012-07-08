@@ -1,0 +1,35 @@
+/* helpers */
+
+html, body {
+	background-color: #fff;
+	height: 100%;
+}
+
+.debug {
+	background-color: #000;
+}
+
+.header-placeholder {
+	min-height: 60px;
+}
+
+/* end: helpers */
+
+
+
+
+/* content: */
+
+.content {
+	background-color: #fff;
+	padding: 1.1%;
+	padding-bottom: 60px;
+}
+
+.footer {
+	position: fixed; left: 1.1%; right: 0; bottom: 0;
+	height: 20px;
+	color: #959595;
+}
+
+/* end: content */

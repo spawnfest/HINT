@@ -1,4 +1,4 @@
--module(hint_importer_app).
+-module(hint_mfa_search_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    hint_importer_sup:start_link().
+    hint_mfa_search_sup:start_link().
 
 stop(_State) ->
     ok.

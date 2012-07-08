@@ -1,5 +1,5 @@
 
--module(hint_importer_sup).
+-module(hint_mfa_search_sup).
 
 -behaviour(supervisor).
 
