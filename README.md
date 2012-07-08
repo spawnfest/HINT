@@ -1,13 +1,13 @@
 # TOC
 
-1. What is it?
+1. What is it?  
+    DEMO
 2. Technical details
 3. How to?  
     3.1 Generate your own PLT  
     3.2 Use your own PLT  
     3.3 See some results on the command line  
 4. Weak points and future solutions
-5. DEMO
 
 # 1. WHAT IS IT?
 
@@ -38,6 +38,22 @@ and get back
 ?
 
 That's the goal of HINT: to provide you with a way to search for function definitions and documentation by function type signatures.
+
+# DEMO
+
+1. Start web.sh
+2. Go to http://127.0.0.1/52012
+
+Give some time for web.sh to start completely. If it doesn't work, clean && compile && run.
+
+3. Demo URLs (on Monday):  
+- http://memorici.de:52012
+- http://booktu.com
+
+One of these will work :)
+
+
+
 
 # 4. HOW TO
 
@@ -136,17 +152,4 @@ Once we receive a request, we do the following:
     Solution:  
     - precompute permutations when loading PLT on startup  
     - save files with premutations for more common searches  
-
-# 5. DEMO
-
-1. Start web.sh
-2. Go to http://127.0.0.1/52012
-
-Give some time for web.sh to start completely. If it doesn't work, clean && compile && run.
-
-3. Demo URLs (on Monday):  
-- http://memorici.de:52012
-- http://booktu.com
-
-One of these will work :)
 
