@@ -81,6 +81,22 @@ handle_call({store, Modules}, _From, State) when is_list(Modules) ->
 			MSet = atoms_to_utf_set(Modules),
 			{reply, ok, State#state{functions=sets:union(FSet, State#state.functions), modules=sets:union(MSet, State#state.modules)}}
 	end;
+handle_call({search, SearchString}, _From, State) ->
+	Req = hint_mfa_search_req:new(SearchString),
+	ModExprs = hint_mfa_search_req:module(Req),
+	FunExprs = hint_mfa_search_req:func(Req),
+	Arity    = hint_mfa_search_req:arity(Req),
+	ModExact = sets:filter(fun(Element) ->
+				list_to_binary(proplists:get_value(exact, ModExprs)) == Element
+		end, State#state.modules),
+	[ModStartsWith, ModContains] = [sets:filter(fun(Element) ->
+				case re:run(Element, proplists:get_value(ReMode, ModExprs), []) of
+					nomatch -> false;
+					_ -> true
+				end
+		end, State#state.modules) || ReMode <- [starts_with, contains]],
+	?debugFmt("me ~p msw ~p mc ~p", [sets:to_list(ModExact), sets:to_list(ModStartsWith), sets:to_list(ModContains)]),
+	{reply, ok, State};
 handle_call(_X,_Y,Z) ->
 	{reply, error, Z}.
 handle_cast(_, State) ->
