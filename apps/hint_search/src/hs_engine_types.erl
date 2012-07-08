@@ -175,7 +175,11 @@ rank_module(_, Mod) ->
 	end.
 
 rank_fun(Fun) ->
-	-1*length(atom_to_list(Fun))*0.005.
+	Length = length(atom_to_list(Fun)),
+	if
+		Length > 10 -> -1*0.005;
+		true        -> 0
+	end.
 
 full_match([]) ->
 	false;
