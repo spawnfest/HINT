@@ -1,5 +1,6 @@
 -module(plt_cache_server).
 -behaviour(gen_server).
+-behaviour(poolboy_worker).
 
 %%%
 %%% Exports
@@ -11,13 +12,9 @@
 
 -export([ start_link/1
         , load/1
-        , load/2
         , update/0
-        , update/1
         , apply/1
-        , apply/2
         , lookup/1
-        , lookup/2
         ]).
 
 %%
@@ -35,6 +32,7 @@
 %%% Defines
 %%%
 
+-define(POOL, pool_plt_cache_server).
 -record(state, {plt, ets, file}).
 
 %%%
@@ -43,44 +41,47 @@
 
 -spec start_link([{file, Path::string()}] | []) -> ok.
 start_link(Args) ->
-  Name = proplists:get_value(name, Args, ?MODULE),
-  gen_server:start_link({local, Name}, ?MODULE, Args, []).
+  gen_server:start_link(?MODULE, Args, []).
 
 %%
 %% Load a specified Plt file. 
 %%
--spec load(pid(), Path::string()) -> ok.
-load(Server, File) ->
-  gen_server:call(Server, {load, File}).
+-spec load(Path::string()) -> ok.
 load(File) ->
-  gen_server:call(?MODULE, {load, File}).
+  Worker = poolboy:checkout(?POOL),
+  Res = gen_server:call(Worker, {load, File}, infinity),
+  poolboy:checkin(?POOL, Worker),
+  Res.
 
 %%
 %% Update all info from the currently loaded file
 %%
--spec update(pid()) -> ok.
-update(Server) ->
-  gen_server:call(Server, update).
+-spec update() -> ok.
 update() ->
-  gen_server:call(?MODULE, update).
+  Worker = poolboy:checkout(?POOL),
+  Res = gen_server:call(Worker, update, infinity),
+  poolboy:checkin(?POOL, Worker),
+  Res.
 
 %%
 %% Apply a specified function. Plt will be prepended to the list of arguments
 %%
--spec apply(pid(), {Module::atom(), Func::atom(), Args::list()}) -> any().
-apply(Server, MFA) ->
-  gen_server:call(Server, {apply, MFA}, infinity).
+-spec apply({Module::atom(), Func::atom(), Args::list()}) -> any().
 apply(MFA) ->
-  ?MODULE:apply(?MODULE, MFA).
+  Worker = poolboy:checkout(?POOL),
+  Res = gen_server:call(Worker, {apply, MFA}, infinity),
+  poolboy:checkin(?POOL, Worker),
+  Res.
 
 %%
 %% Lookup arity
 %%
--spec lookup(pid(), integer()) -> any().
-lookup(Server, Arity) ->
-  gen_server:call(Server, {lookup, Arity}).
+-spec lookup(integer()) -> any().
 lookup(Arity) ->
-  gen_server:call(?MODULE, {lookup, Arity}).
+  Worker = poolboy:checkout(?POOL),
+  Res = gen_server:call(Worker, {lookup, Arity}, infinity),
+  poolboy:checkin(?POOL, Worker),
+  Res.
 
 %%%
 %%% Callbacks

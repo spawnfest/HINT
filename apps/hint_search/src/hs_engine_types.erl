@@ -19,7 +19,8 @@ temp_file() ->
 
 rm_temp_file(Path, IO) ->
 	file:close(IO),
-	mochitemp:rmtempdir(filename:dirname(Path)).
+	io:format("~p", [Path]).
+	%mochitemp:rmtempdir(filename:dirname(Path)).
 
 q(Request) ->
 	Req     = hint_search_req:new(Request),

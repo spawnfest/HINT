@@ -24,24 +24,33 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    ChildSpecs = child_specs([plt_cache_server]),
+	NumberOfWorkers = worker_number(),
+	Workers = [plt_cache_server],
+	ChildSpecs = 
+		lists:map(fun(Worker) -> pool_spec(Worker, NumberOfWorkers) end, Workers),
+    %ChildSpecs = child_specs([plt_cache_server]),
     {ok, { {one_for_one, 5, 10}, ChildSpecs} }.
 
+pool_spec(Worker, Number) ->
+	PoolName = list_to_atom("pool_" ++ atom_to_list(Worker)),
+	Args = [ {name, {local, PoolName}}
+	       , {worker_module, Worker}
+	       , {size, Number}
+	       , {max_overflow, Number * 2}
+	],
+    poolboy:child_spec(PoolName, Args).
 
-child_specs(Children) ->
-  child_specs(Children, []).
-
-child_specs([], Acc) ->
-  Acc;
-child_specs([H|T], Acc) ->
-  %% A very dumb "default" child spec that 
-  %% might work most of the time
-  %% TODO: a more flexible solution or specify
-  %%       children manually when needed
-  Spec = { H
-         , {H, start_link, [[]]}
-         , permanent
-         , brutal_kill
-         , worker
-         , [H]},
-  child_specs(T, [Spec | Acc]).
+worker_number() ->
+	case  erlang:system_info(logical_processors_available) of
+		unknown ->
+			case erlang:system_info(logical_processors_online) of
+				unknown -> 
+					case erlang:system_info(logical_processors) of
+						unknown -> 1;
+						LP      -> LP
+					end;
+				LPO     -> LPO
+			end;
+		LPA     -> LPA
+	end.
+					
