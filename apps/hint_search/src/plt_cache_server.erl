@@ -33,7 +33,14 @@
 %%%
 
 -define(POOL, pool_plt_cache_server).
--record(state, {plt, ets, file}).
+-record(state, {plt, ets, ets_m2fa, ets_f2ma, fs, ms, file}).
+
+%%%
+%%% Import
+%%%
+
+-include_lib("dialyzer/src/dialyzer.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 %%%
 %%% API
@@ -90,17 +97,20 @@ lookup(Arity) ->
 init(Args) ->
   File = get_file(Args),
   Plt = dialyzer_plt:from_file(File),
-  Ets = create_and_update_ets(Plt),
-  {ok, #state{plt = Plt, ets = Ets, file = File}}.
+  InitProplist = create_and_update_ets(Plt),
+  {Ets, M2FA, F2MA} = proplists:get_value(ets, InitProplist),
+  Ms = proplists:get_value(ms, InitProplist),
+  Fs = proplists:get_value(fs, InitProplist),
+  {ok, #state{plt = Plt, ets = Ets, file = File, ms = Ms, fs = Fs, ets_m2fa = M2FA, ets_f2ma = F2MA}}.
 
-handle_call({load, File}, _From, #state{ets=Ets} = State) ->
+handle_call({load, File}, _From, #state{ets=Ets, ets_m2fa=M2FA, ets_f2ma=F2MA} = State) ->
   Plt  = dialyzer_plt:from_file(File),
-  clean_update(Ets, Plt),
+  clean_update(Ets, M2FA, F2MA, Plt),
   {reply, ok, State#state{plt=Plt, file=File}, hibernate};
 
-handle_call(update, _From, #state{ets=Ets, file=File} = State) ->
+handle_call(update, _From, #state{ets=Ets, ets_m2fa=M2FA, ets_f2ma=F2MA, file=File} = State) ->
   Plt  = dialyzer_plt:from_file(File),
-  clean_update(Ets, Plt),
+  clean_update(Ets, M2FA, F2MA, Plt),
   {reply, ok, State, hibernate};
 
 handle_call({lookup, Arity}, _From, #state{ets=Ets} = State) ->
@@ -148,21 +158,39 @@ create_and_update_ets(Plt) ->
                          , {keypos, 3}
                          , {write_concurrency,true}
                          , {read_concurrency,true}]),
-  update_ets(Ets, Plt),
-  Ets.
+  M2FA = ets:new(plt_cache_m2fa, [ set       %% having all those bottlenecks, I see
+                         , private           %% those ets tables as premature optimization
+                         , {keypos, 3}       %% ~manpages
+                         , {write_concurrency,true}
+                         , {read_concurrency,true}]),
+  F2MA = ets:new(plt_cache_f2ma, [ bag
+                         , private
+                         , {keypos, 3}
+                         , {write_concurrency,true}
+                         , {read_concurrency,true}]),
+  {Ms, Fs} = update_ets(Ets, M2FA, F2MA, Plt),
+  [   {ets, {Ets, M2FA, F2MA}}
+    , {ms, Ms}
+    , {fs, Fs}
+  ].
 
-clean_update(Ets, Plt) ->
+clean_update(Ets, M2FA, F2MA, Plt) ->
   ets:delete_all_objects(Ets),
-  update_ets(Ets, Plt).
+  ets:delete_all_objects(M2FA),
+  ets:delete_all_objects(F2MA),
+  update_ets(Ets, M2FA, F2MA, Plt).
 
-update_ets(Ets0, Plt) ->
-  AllModules = sets:to_list(dialyzer_plt:all_modules(Plt)),
+update_ets(Ets0, M2FA, F2MA, Plt) ->
+  AllModulesSet = dialyzer_plt:all_modules(Plt),
+  AllModules = sets:to_list(AllModulesSet),
 	% wrong heuristic :)
   Modules = [M || M <- AllModules,
 			string:equal(atom_to_list(M),
 				string:to_lower(atom_to_list(M)))],
   MFAList = get_mfas(Modules, Plt),
-  ets:insert(Ets0, MFAList).
+  {Ms, Fs} = hs_engine_mfa:mfa_to_ets(MFAList, {M2FA, F2MA}),
+  ets:insert(Ets0, MFAList),
+  {Ms, Fs}.
 
 get_mfas(Modules, Plt) -> get_mfas(Modules, Plt, []).
 

@@ -4,7 +4,7 @@
 
 -export([init/3, handle/2, terminate/2]).
 
--include_lib("../../core/saloon/include/user.hrl").
+-include_lib("../../deps/saloon/include/user.hrl").
 
 init({_Any, http}, Req, [Type]) ->
 	saloon_init:prepare(Req),
