@@ -28,8 +28,8 @@ init([]) ->
 	Workers = [plt_cache_server],
 	ChildSpecs = 
 		lists:map(fun(Worker) -> pool_spec(Worker, NumberOfWorkers) end, Workers),
-    %ChildSpecs = child_specs([plt_cache_server]),
-    {ok, { {one_for_one, 5, 10}, ChildSpecs} }.
+    SearchSup = {hint_query_sup, {hint_query_sup, start_link, []}, permanent, infinity, supervisor, [hint_query_sup]},
+    {ok, { {one_for_one, 5, 10}, [SearchSup | ChildSpecs]} }.
 
 pool_spec(Worker, Number) ->
 	PoolName = list_to_atom("pool_" ++ atom_to_list(Worker)),

@@ -2,3 +2,6 @@ Frontend branch.
 → Generated release renamed
 → Cowboy integrated through saloon
 → Added Emakefile and web.sh for dev-mode purposes.
+
+TODO:
+→ Update/Load PLT-files in all cache servers
