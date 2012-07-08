@@ -156,7 +156,7 @@ match_log(PermDict, [{_, _, {Warn, [_Mod, Perm | _]}} | T], RankDict) ->
 %% fully matched funs do not appear in dialyzer logs
 %% so we add them from our list of function
 maybe_add_matched_funs(PermDict, RankDict) ->
-	dict:fold(fun(Key, {MFA, _}, Acc) ->
+	dict:fold(fun(_Key, {MFA, _}, Acc) ->
 		          dict:store(MFA, [], Acc)
               end,
 	          RankDict, PermDict).
