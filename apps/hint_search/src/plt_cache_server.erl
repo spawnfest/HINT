@@ -68,12 +68,8 @@ apply(Server, MFA) ->
 %%%
 
 init(Args) ->
-  File = proplists:get_value(file, Args, undefined),
-  Plt = case File of
-          undefined -> Path = dialyzer_plt:get_default_plt(),
-                       dialyzer_plt:from_file(Path);
-          Path      -> dialyzer_plt:from_file(Path)
-        end,
+  File = get_file(Args),
+  Plt = dialyzer_plt:from_file(File),
   Ets = create_and_update_ets(Plt),
   {ok, #state{plt = Plt, ets = Ets, file = File}}.
 
@@ -106,7 +102,18 @@ terminate(shutdown, #state{ets=Ets}) ->
 %%%
 %%% Internal
 %%%
-  
+
+get_file(Args) ->
+  File = proplists:get_value(file, Args, undefined),
+  case File of
+    undefined -> 
+      case application:get_env(plt_path) of
+        undefined     -> dialyzer_plt:get_default_plt();
+        {ok, PltPath} -> filename:absname(PltPath)
+      end;
+    Path      -> filename:absname(Path)
+  end.
+
 create_and_update_ets(Plt) ->
   Ets = ets:new(?MODULE, [ ordered_set
                          , public
