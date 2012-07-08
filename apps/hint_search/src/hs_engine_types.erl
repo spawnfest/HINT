@@ -59,29 +59,14 @@ gen_magic_header() ->
 
 funcs_with_arity(Ar) 
 	when is_integer(Ar) ->
-	% TODO switch to cache
-	PLT   = dialyzer_plt:from_file(dialyzer_plt:get_default_plt()),
-	%PLT   = dialyzer_plt:from_file("/Users/nekro/docs/hint/tiny_plt"),
-	LMods = [M || 
-			M <- sets:to_list(dialyzer_plt:all_modules(PLT)),
-			% wrong heuristic :)
-			string:equal(atom_to_list(M), 
-				string:to_lower(atom_to_list(M)))],
-	LFuns = [begin 
-				{value, MT}=dialyzer_plt:lookup_module(PLT,M),
-				MT 
-			end || M <- LMods],
-	[{M,F,A} || 
-		M1 <- LFuns, 
-		{{M,F,A},_,_} <- M1, 
-		A == Ar]. 
+	plt_cache_server:lookup(Ar). 
 
 -define(MAX_PERMS, 5).
 
 perms([]) -> 
 	[[]];
-perms(L) when (length(L) =< ?MAX_PERMS) -> 
-	[[H|T] || H <- L, T <- perms(L--[H])];
+% perms(L) when (length(L) =< ?MAX_PERMS) -> 
+%   [[H|T] || H <- L, T <- perms(L--[H])];
 perms(L) -> 
 	%TODO rotations
 	[L].
@@ -125,11 +110,8 @@ to_s(S) -> S.
 
 
 analyze_file(FName) -> 
-	%TODO switch to cache
-	hs_dialyzer_wrapper:run(FName).
+	plt_cache_server:apply({hs_dialyzer_wrapper, run, [FName]}).
 
 rank(_, R) -> 
 	%TODO
 	R.
-
-

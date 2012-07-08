@@ -10,9 +10,14 @@
 %%
 
 -export([ start_link/1
+        , load/1
         , load/2
+        , update/0
         , update/1
+        , apply/1
         , apply/2
+        , lookup/1
+        , lookup/2
         ]).
 
 %%
@@ -47,6 +52,8 @@ start_link(Args) ->
 -spec load(pid(), Path::string()) -> ok.
 load(Server, File) ->
   gen_server:call(Server, {load, File}).
+load(File) ->
+  gen_server:call(?MODULE, {load, File}).
 
 %%
 %% Update all info from the currently loaded file
@@ -54,14 +61,26 @@ load(Server, File) ->
 -spec update(pid()) -> ok.
 update(Server) ->
   gen_server:call(Server, update).
+update() ->
+  gen_server:call(?MODULE, update).
 
 %%
 %% Apply a specified function. Plt will be prepended to the list of arguments
 %%
 -spec apply(pid(), {Module::atom(), Func::atom(), Args::list()}) -> any().
 apply(Server, MFA) ->
-  gen_server:call(Server, {apply, MFA}).
+  gen_server:call(Server, {apply, MFA}, infinity).
+apply(MFA) ->
+  ?MODULE:apply(?MODULE, MFA).
 
+%%
+%% Lookup arity
+%%
+-spec lookup(pid(), integer()) -> any().
+lookup(Server, Arity) ->
+  gen_server:call(Server, {lookup, Arity}).
+lookup(Arity) ->
+  gen_server:call(?MODULE, {lookup, Arity}).
 
 %%%
 %%% Callbacks
@@ -76,15 +95,18 @@ init(Args) ->
 handle_call({load, File}, _From, #state{ets=Ets} = State) ->
   Plt  = dialyzer_plt:from_file(File),
   clean_update(Ets, Plt),
-  {reply, ok, State#state{plt=Plt, file=File}};
+  {reply, ok, State#state{plt=Plt, file=File}, hibernate};
 
 handle_call(update, _From, #state{ets=Ets, file=File} = State) ->
   Plt  = dialyzer_plt:from_file(File),
   clean_update(Ets, Plt),
-  {reply, ok, State};
+  {reply, ok, State, hibernate};
+
+handle_call({lookup, Arity}, _From, #state{ets=Ets} = State) ->
+  {reply, ets:lookup(Ets, Arity), State};
 
 handle_call({apply, {M, F, A}}, _From, #state{plt=Plt} = State) ->
-  {reply, erlang:apply(M, F, [Plt | A]), State}.
+  {reply, erlang:apply(M, F, [Plt | A]), State, hibernate}.
 
 handle_cast(_, State) ->
   {noreply, State}.
@@ -119,8 +141,9 @@ get_file(Args) ->
   end.
 
 create_and_update_ets(Plt) ->
-  Ets = ets:new(?MODULE, [ ordered_set
-                         , public
+  Ets = ets:new(?MODULE, [ bag
+                         , private
+                         , {keypos, 3}
                          , {write_concurrency,true}
                          , {read_concurrency,true}]),
   update_ets(Ets, Plt),
@@ -131,7 +154,11 @@ clean_update(Ets, Plt) ->
   update_ets(Ets, Plt).
 
 update_ets(Ets0, Plt) ->
-  Modules = sets:to_list(dialyzer_plt:all_modules(Plt)),
+  AllModules = sets:to_list(dialyzer_plt:all_modules(Plt)),
+	% wrong heuristic :)
+  Modules = [M || M <- AllModules,
+			string:equal(atom_to_list(M),
+				string:to_lower(atom_to_list(M)))],
   MFAList = get_mfas(Modules, Plt),
   ets:insert(Ets0, MFAList).
 

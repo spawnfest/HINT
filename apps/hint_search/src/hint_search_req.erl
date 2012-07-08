@@ -64,7 +64,7 @@ parse_module([$:|T], Acc)        ->
   Mod = list_to_atom(lists:reverse(Acc)),
   {Func, Arity, Rest} = parse_func(T),
   {Mod, Func, Arity, Rest};
-parse_module([$(|T] = Rest, Acc) ->
+parse_module([$(|_] = Rest, Acc) ->
   {Func, Arity, Rest} = parse_func(Rest, Acc),
 	{[], Func, Arity, Rest};
 parse_module([H|T], Acc)  ->
