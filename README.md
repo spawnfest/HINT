@@ -7,6 +7,7 @@
     3.1 Generate your own PLT
     3.2 Use your own PLT
     3.3 See some results on the command line
+
 4. Weak points and future solutions
 
 # 1. WHAT IS IT?
@@ -52,14 +53,12 @@ In order to generate a tiny PLT, run the following in your shell:
 
 ## 4.2 Use your own PLT
 
-1. Place your PLT in PROJECT_ROOT/apps/hint_search/priv
-2. Edit PROJECT_ROOT/apps/hint_search/hint_search.app.src to include the following:
-
-           {env, [{plt_path, {priv_dir, PLT}}]}
-    If you want to place you PLT somewhere else, edit that key to 
+Make sure that application environment contains
 
            {env, [{plt_path, PATH/TO/YOUR/PLT]}
-3. Recompile
+or
+           {env, [{plt_path, {priv_dir, PLT}}]}
+
 
 ## 4.3 See some results on the command line
 
@@ -126,15 +125,21 @@ Once we receive a request, we do the following:
 # 3. Weak points and future solutions
 
 1. Requires PLT
+
     1.1 Takes insane amounts of time to build
-            Solution: build several smaller PLTs, search across them
+
+    Solution: build several smaller PLTs, search across them
 
     1.2 Takes insane amounts of memory for Dialyzer to process 
-            Solution: 
-            - build several smaller PLTs, search across them cache 
-            - search result for common searches
+
+    Solution: 
+    - build several smaller PLTs, search across them cache 
+    - search result for common searches
+
 2. Permutations
-     2.1 Take a long time to generate on each search
-            Solution: 
-            - precompute permutations when loading PLT on startup
-            - save files with premutations for more common searches
+
+    2.1 Take a long time to generate on each search
+
+    Solution: 
+    - precompute permutations when loading PLT on startup
+    - save files with premutations for more common searches
