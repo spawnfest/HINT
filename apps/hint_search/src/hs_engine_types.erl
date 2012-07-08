@@ -5,7 +5,7 @@
 
 -module(hs_engine_types).
 
--export([q/1, generate_magic_file/1]).
+-export([q/1, generate_magic_file/2]).
 
 temp_mod_name() -> 
 	atom_to_list(?MODULE) ++ "_temp_mod".
@@ -13,25 +13,29 @@ temp_mod_name() ->
 temp_file() ->
 	Ext = ".erl",
 	Dir = mochitemp:mkdtemp(),
-	filename:join(Dir, [temp_mod_name(), Ext]).
+	Path = filename:join(Dir, [temp_mod_name(), Ext]),
+	{ok, IO} = file:open(Path, [append]),
+	{Path, IO}.
 
-rm_temp_file(FName) ->
-	mochitemp:rmtempdir(filename:dirname(FName)).
+rm_temp_file(Path, IO) ->
+	file:close(IO),
+	mochitemp:rmtempdir(filename:dirname(Path)).
 
 q(Request) ->
 	Req     = hint_search_req:new(Request),
-	{ok, M2F, Data} = generate_magic_file(Req),
-	FName   = temp_file(),
-	ok      = file:write_file(FName, Data),
-	R = analyze_file(FName),
-	rm_temp_file(FName),
+	{Path, IO}   = temp_file(),
+	{ok, M2F} = generate_magic_file(Req, IO),
+
+	R = analyze_file(Path),
+	rm_temp_file(Path, IO),
+
 	OriginalModule = hint_search_req:module(Req),
 	rank(M2F, OriginalModule, R).
 
 -define(FIRST_FN, 1).
 
 split_bod_inf({Func, {M,F,_A}=MFA, Bods}, Mag) ->
-  BodsLength = length(Bods),
+  	BodsLength = length(Bods),
 	FNs  = [begin
 				N = gen_magic_wrapper_func_name(Func, M, F, I) -- "''",
 				B = iolist_to_binary(N),
@@ -42,18 +46,26 @@ split_bod_inf({Func, {M,F,_A}=MFA, Bods}, Mag) ->
 			end, Mag, FNs),
 	{Bods, Mag1}.
 
-generate_magic_file(Req) ->
+generate_magic_file(Req, IO) ->
+	Header = gen_magic_header(),
+	ok = file:write(IO, Header),
+
 	Arity  = hint_search_req:arity(Req),
-	AFuncs = funcs_with_arity(Arity),
 	Func   = hint_search_req:func(Req),
 	String = hint_search_req:string(Req),
-	Header = gen_magic_header(),
+
+	AFuncs = funcs_with_arity(Arity),
+
 	BodInf = 
 		[{Func, MFA, gen_magic_wrappers({Func, String, Arity}, MFA)}
 			|| MFA <- AFuncs],
-	{Bodies, Magic2F} = 
-		lists:mapfoldl(fun split_bod_inf/2, dict:new(), BodInf),
-	{ok, Magic2F, [Header, Bodies]}.
+	F = fun(El, Acc) ->
+	        {Bodies, Acc1} =  split_bod_inf(El, Acc),
+	        ok = file:write(IO, Bodies),
+	        Acc1
+	    end, 
+	Magic2F = lists:foldl(F, dict:new(), BodInf),
+	{ok, Magic2F}.
 
 gen_magic_header() ->
 	["-module('",temp_mod_name(),"').\n",
