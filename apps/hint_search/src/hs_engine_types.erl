@@ -44,12 +44,21 @@ generate_magic_file(Req) ->
 
 gen_magic_header() ->
 	["-module('",temp_mod_name(),"').\n",
-		"-compile(export_all)\n\n"].
+		"-compile(export_all).\n\n"].
 
-funcs_with_arity(A) 
-	when is_integer(A) ->
-	%% TODO
-	[{lists,any,2},{foo,abr,2}].
+funcs_with_arity(Ar) 
+	when is_integer(Ar) ->
+	% TODO switch to cache
+	PLT   = dialyzer_plt:from_file(dialyzer_plt:get_default_plt()),
+	LMods = sets:to_list(dialyzer_plt:all_modules(PLT)),
+	LFuns = [begin 
+				{value, MT}=dialyzer_plt:lookup_module(PLT,M),
+				MT 
+			end || M <- LMods],
+	[{M,F,A} || 
+		M1 <- LFuns, 
+		{{M,F,A},_,_} <- M1, 
+		A == Ar].
 
 -define(MAX_PERMS, 5).
 
@@ -75,18 +84,18 @@ gen_magic_wrappers_(I, [P|Perm], Vars, FS, MFA) ->
 	[[Spec, $\n, Body, $\n] | 
 		gen_magic_wrappers_(I+1, Perm, Vars, FS, MFA)].
 
-gen_magic_wrapper_func_name(UFunc, F, I) ->
-	[UFunc, $_, F, $_, to_s(I)].
+gen_magic_wrapper_func_name(UFunc, M, F, I) ->
+	[$', UFunc, "_m_", M, "_f_", F, $_, to_s(I), $'].
 
-gen_magic_wrapper_spec(I, {Func, TStr}, {_M, F, _A}) ->
+gen_magic_wrapper_spec(I, {Func, TStr}, {M, F, _A}) ->
 	["-spec ",
-		gen_magic_wrapper_func_name(Func, F, I),
+		gen_magic_wrapper_func_name(Func, M, F, I),
 		TStr, "."].
 
 gen_magic_wrapper_body(I, {Func, _S}, {M, F, _A}, P, Vars) ->
-	[gen_magic_wrapper_func_name(Func, F, I), 
+	[gen_magic_wrapper_func_name(Func, M, F, I), 
 		"(", gen_vars(Vars), ") ->\n",
-		$\t,M,$:,F,$(,gen_vars(P),$),$.].
+		$\t, "'",M,"':'",F,"'(",gen_vars(P),").\n"].
 
 gen_vars([V]) -> [V];
 gen_vars([V | VL]) ->
