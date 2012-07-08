@@ -108,8 +108,12 @@ get_file(Args) ->
   case File of
     undefined -> 
       case application:get_env(plt_path) of
-        undefined     -> dialyzer_plt:get_default_plt();
-        {ok, PltPath} -> filename:absname(PltPath)
+        undefined              -> dialyzer_plt:get_default_plt();
+        {ok, {priv_dir, PrivFile}} ->
+            {ok, AppName} = application:get_application(),
+            PrivDir = filename:absname(code:priv_dir(AppName)),
+            filename:absname_join(PrivDir, PrivFile);
+        {ok, PltPath}    -> filename:absname(PltPath)
       end;
     Path      -> filename:absname(Path)
   end.
