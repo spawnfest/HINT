@@ -25,18 +25,20 @@ q(Request) ->
 	ok      = file:write_file(FName, Data),
 	R = analyze_file(FName),
 	rm_temp_file(FName),
-	rank(M2F, R).
+	OriginalModule = hint_search_req:module(Req),
+	rank(M2F, OriginalModule, R).
 
 -define(FIRST_FN, 1).
 
 split_bod_inf({Func, {M,F,_A}=MFA, Bods}, Mag) ->
+  BodsLength = length(Bods),
 	FNs  = [begin
 				N = gen_magic_wrapper_func_name(Func, M, F, I) -- "''",
 				B = iolist_to_binary(N),
 				binary_to_atom(B, latin1)
-			end || I <- lists:seq(?FIRST_FN,length(Bods))],
+			end || I <- lists:seq(?FIRST_FN,BodsLength)],
 	Mag1 = lists:foldl(fun(FNi, PrevMag) -> 
-					dict:store(FNi, MFA, PrevMag) 
+					dict:store(FNi, {MFA, BodsLength}, PrevMag) 
 			end, Mag, FNs),
 	{Bods, Mag1}.
 
@@ -65,8 +67,8 @@ funcs_with_arity(Ar)
 
 perms([]) -> 
 	[[]];
-% perms(L) when (length(L) =< ?MAX_PERMS) -> 
-%   [[H|T] || H <- L, T <- perms(L--[H])];
+perms(L) when (length(L) =< ?MAX_PERMS) -> 
+	[[H|T] || H <- L, T <- perms(L--[H])];
 perms(L) -> 
 	%TODO rotations
 	[L].
@@ -112,6 +114,81 @@ to_s(S) -> S.
 analyze_file(FName) -> 
 	plt_cache_server:apply({hs_dialyzer_wrapper, run, [FName]}).
 
-rank(_, R) -> 
-	%TODO
-	R.
+% [{warn_contract_types,{"/var/folders/xf/qpds9v9x6pl49vwc4435hnz00000gp/T/WWKceZtmp/hs_engine_types_temp_mod.erl",
+%                        4},
+%                       {invalid_contract,[hs_engine_types_temp_mod,
+%                                          fun_m_hipe_dot_f_translate_digraph_1,3,
+%                                          "(digraph(),string(),string()) -> 'ok'"]}}
+
+rank(PermDict, OriginalModule, DiLog) -> 
+	RankDict = dict:new(),
+	Result = match_log(PermDict, DiLog, RankDict),
+	List = dict:to_list(
+	         dict:map(fun(Key, Value) -> 
+	           mfa_rank(OriginalModule, Key, Value)
+	         end, Result)),
+	lists:reverse(lists:keysort(2, List)).
+	
+match_log(_, [], RankDict) ->
+	RankDict;
+match_log(PermDict, [{_, _, {Warn, [_Mod, Perm | _]}} | T], RankDict) ->
+	{ActualFun, PermCount} = dict:fetch(Perm, PermDict),
+	RankDict1 = dict:append(ActualFun, {Perm, Warn, PermCount}, RankDict),
+	match_log(PermDict, T, RankDict1).
+	
+mfa_rank(OriginalModule, {Mod, _F, _A}, Perms) ->
+	RankMod = rank_module(OriginalModule, Mod),	
+	RankFun = rank_fun(Mod),
+	RankPerms = 
+		case full_match(Perms) of
+			false ->   %% one of perms successfully matched the request
+				0.5;   %% and doesn't appear in dialyzer logs
+			true  ->
+				rank_perms(Perms)
+		end,
+	lists:sum([RankMod, RankFun, RankPerms, 1]).
+	
+rank_module(Original, Mod) when is_list(Original)->
+	rank_module(binary_to_atom(iolist_to_binary(Original), latin1), Mod);
+rank_module(Mod, Mod) ->
+	0.5;
+rank_module(_, Mod) ->
+	Length    = length(atom_to_list(Mod)),
+	if 
+		Length > 2, Length < 7 -> 0;
+		true -> 
+			Deviation = math:pow(erlang:abs(10 - Length), 2),
+			-1*Deviation*0.1
+	end.
+
+rank_fun(Fun) ->
+	-1*length(atom_to_list(Fun))*0.005.
+
+full_match([]) ->
+	false;
+full_match([{_, _, Length}|_] = Perms) ->
+	length(Perms) =:= Length.
+
+rank_perms(Perms) ->
+	lists:max(lists:map(fun rank_warning/1, Perms)).
+
+%% https://github.com/erlang/otp/blob/master/lib/dialyzer/src/dialyzer.erl
+rank_warning({_Perm, contract_diff, _}) ->
+	-0.5;
+rank_warning({_Perm, contract_subtype, _}) ->
+	-0.1;
+rank_warning({_Perm, contract_supertype, _}) ->
+	-0.09;
+rank_warning({_Perm, contract_range, _}) ->
+	-0.2;
+rank_warning({_Perm, invalid_contract, _}) ->
+	-0.7;
+rank_warning({_Perm, extra_range, _}) ->
+	-0.2;
+% rank_warning({_Perm, overlapping_contract, _}) ->
+% 	0;
+% rank_warning({_Perm, spec_missing_fun, _}) ->
+% 	0;
+rank_warning(_) ->
+	-0.9.
+	
