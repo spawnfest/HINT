@@ -5,12 +5,10 @@
 
 -module(hs_engine_types).
 
--compile(export_all).
+-export([q/1, generate_magic_file/1]).
 
 temp_mod_name() -> 
 	atom_to_list(?MODULE) ++ "_temp_mod".
-
-req_type() -> req.
 
 temp_file() ->
 	Ext = ".erl",
@@ -20,13 +18,12 @@ temp_file() ->
 rm_temp_file(FName) ->
 	mochitemp:rmtempdir(filename:dirname(FName)).
 
-% req is {{M,F,A}, "mod:fun(lits(),[foo(),bar()])"} ADT, where MFA is derived from string
 q(Request) ->
 	Req     = hint_search_req:new(Request),
 	{ok, M2F, Data} = generate_magic_file(Req),
 	FName   = temp_file(),
 	ok      = file:write_file(FName, Data),
-	{ok, R} = analyze_file(FName),
+	R = analyze_file(FName),
 	rm_temp_file(FName),
 	rank(M2F, R).
 
@@ -127,7 +124,9 @@ to_s(I) when is_integer(I) ->
 to_s(S) -> S.
 
 
-analyze_file(FName) -> {ok, []}.
+analyze_file(FName) -> 
+	%TODO switch to cache
+	hs_dialyzer_wrapper:run(FName).
 
 rank(_, R) -> 
 	%TODO
