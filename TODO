@@ -1,0 +1,5 @@
+- Update/Load PLT-files in all cache servers
+- build several smaller PLTs, search across them
+- cache search results for common searches
+- precompute permutations when loading PLT on startup
+- save files with premutations for more common searches
