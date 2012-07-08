@@ -9,12 +9,19 @@
 <div class="row-fluid">
 	<div class="span7">
 		<div class="landing hero-unit">
-			<h1 class="visible-desktop">{% t text="HINT search engine" %}</h1>
+			<!---h1 class="visible-desktop">{% t text="HINT search engine" %}</h1>
 			<h1 class="hidden-desktop">{% t text="HINT search engine" %}</h1>
-			<br />
+			<br /--->
 			<p>
-				{% t text="With blackjack and hookers" %}<br />
+				<form method="post" action="/" id="searchForm">
+					<label for="search">{% t text="Type your types" %}</label> 
+					<input type="text" name="q" id="search" />
+				</form>
 			</p>
+			<div class="well" id="result">
+				<h2>{% t title="Your results will be here" %}</h2>
+				<p id="result"></p>
+			</div>
 		</div>
 		<div class="well">
 			<h2>{% t title="HINT overview" %}</h2>

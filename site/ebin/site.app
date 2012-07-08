@@ -1,3 +1,4 @@
 {application,site,
              [{vsn,"0.1.0"},
-              {modules,[index_2_dtl,index_dtl,saloon_main,saloon_user]}]}.
+              {modules,[saloon_conf,saloon_lang,saloon_main,saloon_search,
+                        saloon_user]}]}.

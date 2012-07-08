@@ -17,7 +17,7 @@ handle(Req, State) ->
 		"erlydtl:compile: ~p~n", 
 		[
 			erlydtl:compile(
-				"site/templates/base_landing.dtl", 
+				"site/priv/templates/base_landing.dtl", 
 				main_dtl, 
 				[{out_dir, "site/ebin/"}, {custom_tags_modules, [saloon_lang]}]
 			)

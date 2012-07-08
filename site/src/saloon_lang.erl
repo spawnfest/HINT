@@ -10,6 +10,24 @@
 
 %%spawnpoint
 
+t([{title,<<"Your results will be here">>}]) -> 
+	case saloon_ctx:language() of 
+		en -> <<"Your results will be here">>;
+		ru -> <<"Your results will be here">>;
+		lv -> <<"Your results will be here">>;
+		es -> <<"Your results will be here">>;
+		_ -> <<"*Your results will be here*">>
+	end;
+
+t([{text,<<"Type your types">>}]) -> 
+	case saloon_ctx:language() of 
+		en -> <<"Type your types">>;
+		ru -> <<"Type your types">>;
+		lv -> <<"Type your types">>;
+		es -> <<"Type your types">>;
+		_ -> <<"*Type your types*">>
+	end;
+
 t([{text,<<"HINT overview">>}]) -> 
 	case saloon_ctx:language() of 
 		en -> <<"HINT overview">>;

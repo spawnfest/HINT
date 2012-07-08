@@ -14,6 +14,7 @@ dispatch() ->
 				%% Site controllers
 				%%
 
+				{[<<"search">>, '...'], saloon_search, ["search"]},
 				{[<<"register">>, '...'], saloon_user, ["register"]},
 				{[<<"login">>, '...'], saloon_user, ["login"]},
 				{[<<"logout">>, '...'], saloon_user, ["logout"]},

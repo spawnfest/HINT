@@ -26,7 +26,26 @@
 				<link rel="stylesheet" href="/static/css/{{ stylesheet.name }}.css" />
 			{% endfor %}
 		{% endblock %}
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+		<script type="text/javascript" src="/static/js/jquery.form.js"></script>
+		<script type="text/javascript">
+			$(document).ready(
+				function(){
+					var resultpane = $("#result");
+					$('#searchForm').on('submit', function(){
+						resultpane.html('May take a while...');
+						$.post(
+							'/search',
+							{search: $('#search').val()},
+							function(result) {
 
+									resultpane.html(result);
+							}
+						);
+						return false;
+					})
+				});
+		</script>
 		{# for page to load quicker, javascript will be fed at the bottom of html #}
 	</head>
 
@@ -97,6 +116,7 @@
 			{% for script in scripts %}
 				<script src="/static/js/{{ script.name }}.js"></script>
 			{% endfor %}
+			<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js">
 		{% endblock %}{# javascript #}
 		{% block onload %}
 		{% endblock %}
