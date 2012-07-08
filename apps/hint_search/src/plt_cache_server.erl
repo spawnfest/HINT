@@ -116,9 +116,9 @@ handle_call(update, _From, #state{ets=Ets, ets_m2fa=M2FA, ets_f2ma=F2MA, file=Fi
 handle_call({lookup, {Module, Arity}}, _From, #state{ets=Ets, ms=Modules} = State) ->
   %?debugFmt("=LOOKUP===~n~pets:lookup", [ets:lookup(Ets, Arity)]),
   MFA = ets:lookup(Ets, Arity),
-  Mss = hs_engine_mfa:modules_matching(Module, MFA),
-  ?debugFmt("=LOOKED UP===~n~p", [Mss]),
-  {reply, ets:lookup(Ets, Arity), State};
+  Matched = hs_engine_mfa:modules_matching(Module, MFA),
+  %?debugFmt("=LOOKED UP===~n~p", [Mss]),
+  {reply, Matched, State};
 
 handle_call({apply, {M, F, A}}, _From, #state{plt=Plt} = State) ->
   R = (catch erlang:apply(M, F, [Plt | A])),

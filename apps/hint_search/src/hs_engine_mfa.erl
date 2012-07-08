@@ -32,15 +32,17 @@ mfa_to_ets(MFAList, {M2FA, F2MA}) ->
 		end, {sets:new(), sets:new()}, MFAList),
 	{Ms, Fs}.
 
-modules_matching(Module, MFA) ->
+modules_matching(Module, MFAs) ->
 	?debugFmt(">MODULE>>> ~p", [Module]),
 	case Module of
-		[] -> MFA;
+		[] -> MFAs;
 		_   ->
 			ModuleString = atom_to_list(Module),
-			ModuleUniversum = atoms_to_utf_set([element(1, X) || X <- MFA]),               % I don't do drugs, it's just time for 
-			%?debugFmt(">RELEVANT MODULES>>>~n~p", [sets:to_list(ModuleUniversum)]),       % spawnfest running out
-			do_modules_matching(ModuleUniversum, hint_mfa_req:fuzzy_matches(ModuleString)) % ~jonn mostovoy
+			ModuleUniversum = atoms_to_utf_set([element(1, X) || X <- MFAs]),                     % I don't do drugs, honestly
+			%?debugFmt(">RELEVANT MODULES>>>~n~p", [sets:to_list(ModuleUniversum)]),             %  it's just time for spawnfest running out
+			MM = do_modules_matching(ModuleUniversum, hint_mfa_req:fuzzy_matches(ModuleString)), % ~jonn mostovoy
+			?debugFmt("~n!!!!!!!????? MFA ~p", [[MFA || {M,_,_}=MFA <- MFAs, lists:member(M, MM)]]),
+			[MFA || {M,_,_}=MFA <- MFAs, lists:member(M, MM)]
 	end
 .
 
@@ -49,16 +51,19 @@ modules_matching(Module, MFA) ->
 %%%
 
 do_modules_matching(RelevantModules, ModExprs) ->
-	ModExact = sets:filter(fun(Element) ->
+	_ModExact = sets:filter(fun(Element) -> %% ModExact, your hour will come.
 				list_to_binary(proplists:get_value(exact, ModExprs)) == Element
 		end, RelevantModules),
-	[ModStartsWith, ModContains] = [sets:filter(fun(Element) ->
+	[_ModStartsWith, ModContains] = [sets:filter(fun(Element) ->
 				case re:run(Element, proplists:get_value(ReMode, ModExprs), []) of
 					nomatch -> false;
 					_ -> true
 				end
 		end, RelevantModules) || ReMode <- [starts_with, contains]],
-	{sets:to_list(ModExact), sets:to_list(ModStartsWith), sets:to_list(ModContains)}.
+	?debugMsg("Still Alive"),
+	% Треш, угар, содомия
+	[binary_to_atom(B,latin1)||B<-sets:to_list(ModContains)].
+	%{sets:to_list(ModExact), sets:to_list(ModStartsWith), sets:to_list(ModContains)}.
 
 
 -spec atoms_to_utf_set([atom()]) -> set().
