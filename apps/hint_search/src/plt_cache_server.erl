@@ -70,7 +70,8 @@ apply(Server, MFA) ->
 init(Args) ->
   File = proplists:get_value(file, Args, undefined),
   Plt = case File of
-          undefined -> [];
+          undefined -> Path = dialyzer_plt:get_default_plt(),
+                       dialyzer_plt:from_file(Path);
           Path      -> dialyzer_plt:from_file(Path)
         end,
   Ets = create_and_update_ets(Plt),

@@ -24,5 +24,24 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    ChildSpecs = child_specs([plt_cache_server]),
+    {ok, { {one_for_one, 5, 10}, ChildSpecs} }.
 
+
+child_specs(Children) ->
+  child_specs(Children, []).
+
+child_specs([], Acc) ->
+  Acc;
+child_specs([H|T], Acc) ->
+  %% A very dumb "default" child spec that 
+  %% might work most of the time
+  %% TODO: a more flexible solution or specify
+  %%       children manually when needed
+  Spec = { H
+         , {H, start_link, [[]]}
+         , permanent
+         , brutal_kill
+         , worker
+         , [H]},
+  child_specs(T, [Spec | Acc]).
