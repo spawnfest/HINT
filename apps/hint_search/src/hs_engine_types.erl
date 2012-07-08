@@ -5,7 +5,22 @@
 
 -module(hs_engine_types).
 
--export([q/1, generate_magic_file/2]).
+-export([q/1]).
+
+q(Request) ->
+	Req     = hint_search_req:new(Request),
+	{Path, IO}   = temp_file(),
+	{ok, M2F} = generate_magic_file(Req, IO),
+
+	R = analyze_file(Path),
+	rm_temp_file(Path, IO),
+
+	OriginalModule = hint_search_req:module(Req),
+	rank(M2F, OriginalModule, R).
+
+%%
+%% internal
+%%
 
 temp_mod_name() -> 
 	atom_to_list(?MODULE) ++ "_temp_mod".
@@ -19,19 +34,7 @@ temp_file() ->
 
 rm_temp_file(Path, IO) ->
 	file:close(IO),
-	io:format("~p", [Path]).
-	%mochitemp:rmtempdir(filename:dirname(Path)).
-
-q(Request) ->
-	Req     = hint_search_req:new(Request),
-	{Path, IO}   = temp_file(),
-	{ok, M2F} = generate_magic_file(Req, IO),
-
-	R = analyze_file(Path),
-	rm_temp_file(Path, IO),
-
-	OriginalModule = hint_search_req:module(Req),
-	rank(M2F, OriginalModule, R).
+	mochitemp:rmtempdir(filename:dirname(Path)).
 
 -define(FIRST_FN, 1).
 
@@ -142,13 +145,22 @@ rank(PermDict, OriginalModule, DiLog) ->
 	         end, Result)),
 	lists:reverse(lists:keysort(2, List)).
 	
-match_log(_, [], RankDict) ->
-	RankDict;
+match_log(PermDict, [], RankDict) ->
+	maybe_add_matched_funs(PermDict, RankDict);
 match_log(PermDict, [{_, _, {Warn, [_Mod, Perm | _]}} | T], RankDict) ->
 	{ActualFun, PermCount} = dict:fetch(Perm, PermDict),
 	RankDict1 = dict:append(ActualFun, {Perm, Warn, PermCount}, RankDict),
-	match_log(PermDict, T, RankDict1).
-	
+	PermDict1 = dict:erase(Perm, PermDict),
+	match_log(PermDict1, T, RankDict1).
+
+%% fully matched funs do not appear in dialyzer logs
+%% so we add them from our list of function
+maybe_add_matched_funs(PermDict, RankDict) ->
+	dict:fold(fun(Key, {MFA, _}, Acc) ->
+		          dict:store(MFA, [], Acc)
+              end,
+	          RankDict, PermDict).
+
 mfa_rank(OriginalModule, {Mod, _F, _A}, Perms) ->
 	RankMod = rank_module(OriginalModule, Mod),	
 	RankFun = rank_fun(Mod),
@@ -181,6 +193,8 @@ rank_fun(Fun) ->
 		true        -> 0
 	end.
 
+full_match(fully_matched) ->
+	false;
 full_match([]) ->
 	false;
 full_match([{_, _, Length}|_] = Perms) ->

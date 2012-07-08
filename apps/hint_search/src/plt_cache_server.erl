@@ -107,7 +107,8 @@ handle_call({lookup, Arity}, _From, #state{ets=Ets} = State) ->
   {reply, ets:lookup(Ets, Arity), State};
 
 handle_call({apply, {M, F, A}}, _From, #state{plt=Plt} = State) ->
-  {reply, erlang:apply(M, F, [Plt | A]), State, hibernate}.
+  R = (catch erlang:apply(M, F, [Plt | A])),
+  {reply, R, State, hibernate}.
 
 handle_cast(_, State) ->
   {noreply, State}.
