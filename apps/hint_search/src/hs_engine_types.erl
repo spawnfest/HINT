@@ -30,16 +30,30 @@ q(Request) ->
 	rm_temp_file(FName),
 	rank(M2F, R).
 
+-define(FIRST_FN, 1).
+
+split_bod_inf({Func, {M,F,_A}=MFA, Bods}, Mag) ->
+	FNs  = [begin
+				N = gen_magic_wrapper_func_name(Func, M, F, I) -- "''",
+				B = iolist_to_binary(N),
+				binary_to_atom(B, latin1)
+			end || I <- lists:seq(?FIRST_FN,length(Bods))],
+	Mag1 = lists:foldl(fun(FNi, PrevMag) -> 
+					dict:store(FNi, MFA, PrevMag) 
+			end, Mag, FNs),
+	{Bods, Mag1}.
+
 generate_magic_file(Req) ->
 	Arity  = hint_search_req:arity(Req),
 	AFuncs = funcs_with_arity(Arity),
 	Func   = hint_search_req:func(Req),
 	String = hint_search_req:string(Req),
 	Header = gen_magic_header(),
-	Bodies = 
-		[gen_magic_wrappers({Func, String, Arity}, MFA) 
+	BodInf = 
+		[{Func, MFA, gen_magic_wrappers({Func, String, Arity}, MFA)}
 			|| MFA <- AFuncs],
-	Magic2F = dict:new(), %% TODO
+	{Bodies, Magic2F} = 
+		lists:mapfoldl(fun split_bod_inf/2, dict:new(), BodInf),
 	{ok, Magic2F, [Header, Bodies]}.
 
 gen_magic_header() ->
@@ -50,7 +64,12 @@ funcs_with_arity(Ar)
 	when is_integer(Ar) ->
 	% TODO switch to cache
 	PLT   = dialyzer_plt:from_file(dialyzer_plt:get_default_plt()),
-	LMods = sets:to_list(dialyzer_plt:all_modules(PLT)),
+	%PLT   = dialyzer_plt:from_file("/Users/nekro/docs/hint/tiny_plt"),
+	LMods = [M || 
+			M <- sets:to_list(dialyzer_plt:all_modules(PLT)),
+			% wrong heuristic :)
+			string:equal(atom_to_list(M), 
+				string:to_lower(atom_to_list(M)))],
 	LFuns = [begin 
 				{value, MT}=dialyzer_plt:lookup_module(PLT,M),
 				MT 
@@ -58,7 +77,7 @@ funcs_with_arity(Ar)
 	[{M,F,A} || 
 		M1 <- LFuns, 
 		{{M,F,A},_,_} <- M1, 
-		A == Ar].
+		A == Ar]. 
 
 -define(MAX_PERMS, 5).
 
@@ -73,7 +92,7 @@ perms(L) ->
 gen_magic_wrappers({Func, Str, A}, {M,F,A}) ->
 	Vars = [["V",to_s(I)] || I <- lists:seq(1,A)],
 	Perm = perms(Vars),
-	gen_magic_wrappers_(1, Perm, Vars, 
+	gen_magic_wrappers_(?FIRST_FN, Perm, Vars, 
 		{to_s(Func), Str}, 
 		{to_s(M), to_s(F), A}).
 
@@ -85,7 +104,7 @@ gen_magic_wrappers_(I, [P|Perm], Vars, FS, MFA) ->
 		gen_magic_wrappers_(I+1, Perm, Vars, FS, MFA)].
 
 gen_magic_wrapper_func_name(UFunc, M, F, I) ->
-	[$', UFunc, "_m_", M, "_f_", F, $_, to_s(I), $'].
+	[$', to_s(UFunc), "_m_", to_s(M), "_f_", to_s(F), $_, to_s(I), $'].
 
 gen_magic_wrapper_spec(I, {Func, TStr}, {M, F, _A}) ->
 	["-spec ",
@@ -110,8 +129,8 @@ to_s(S) -> S.
 
 analyze_file(FName) -> {ok, []}.
 
-rank(_, _) -> 
+rank(_, R) -> 
 	%TODO
-	[].
+	R.
 
 
