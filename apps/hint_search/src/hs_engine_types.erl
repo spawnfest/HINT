@@ -54,11 +54,12 @@ generate_magic_file(Req, IO) ->
 	Header = gen_magic_header(),
 	ok = file:write(IO, Header),
 
+	Module = hint_search_req:module(Req),
 	Arity  = hint_search_req:arity(Req),
 	Func   = hint_search_req:func(Req),
 	String = hint_search_req:string(Req),
 
-	AFuncs = funcs_with_arity(Arity),
+	AFuncs = function_filter(Module, Arity),
 
 	BodInf = 
 		[{Func, MFA, gen_magic_wrappers({Func, String, Arity}, MFA)}
@@ -75,9 +76,9 @@ gen_magic_header() ->
 	["-module('",temp_mod_name(),"').\n",
 		"-compile(export_all).\n\n"].
 
-funcs_with_arity(Ar) 
+function_filter(Module, Ar) 
 	when is_integer(Ar) ->
-	plt_cache_server:lookup(Ar). 
+	plt_cache_server:lookup(Module, Ar). 
 
 -define(MAX_PERMS, 5).
 

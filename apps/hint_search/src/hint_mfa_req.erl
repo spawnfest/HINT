@@ -4,7 +4,7 @@
 %% , {starts_with, {ModulePattern1, FunctionPattern1, Arity1}
 %% , {contains, {ModulePattern2, FunctionPattern2, Arity2}}]
 %%
--module(hint_mfa_search_req).
+-module(hint_mfa_req).
 
 %%
 %% Exports

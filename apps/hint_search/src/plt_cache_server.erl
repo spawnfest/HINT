@@ -14,7 +14,7 @@
         , load/1
         , update/0
         , apply/1
-        , lookup/1
+        , lookup/2
         ]).
 
 %%
@@ -83,10 +83,10 @@ apply(MFA) ->
 %%
 %% Lookup arity
 %%
--spec lookup(integer()) -> any().
-lookup(Arity) ->
+-spec lookup(atom(), integer()) -> any().
+lookup(Module, Arity) ->
   Worker = poolboy:checkout(?POOL),
-  Res = gen_server:call(Worker, {lookup, Arity}, infinity),
+  Res = gen_server:call(Worker, {lookup, {Module, Arity}}, infinity),
   poolboy:checkin(?POOL, Worker),
   Res.
 
@@ -113,7 +113,11 @@ handle_call(update, _From, #state{ets=Ets, ets_m2fa=M2FA, ets_f2ma=F2MA, file=Fi
   clean_update(Ets, M2FA, F2MA, Plt),
   {reply, ok, State, hibernate};
 
-handle_call({lookup, Arity}, _From, #state{ets=Ets} = State) ->
+handle_call({lookup, {Module, Arity}}, _From, #state{ets=Ets, ms=Modules} = State) ->
+  %?debugFmt("=LOOKUP===~n~pets:lookup", [ets:lookup(Ets, Arity)]),
+  MFA = ets:lookup(Ets, Arity),
+  Mss = hs_engine_mfa:modules_matching(Module, MFA),
+  ?debugFmt("=LOOKED UP===~n~p", [Mss]),
   {reply, ets:lookup(Ets, Arity), State};
 
 handle_call({apply, {M, F, A}}, _From, #state{plt=Plt} = State) ->
