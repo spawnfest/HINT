@@ -10,9 +10,9 @@
 %%
 
 -export([ start_link/1
-        , load/1
-        , update/0
-        , apply/1
+        , load/2
+        , update/1
+        , apply/2
         ]).
 
 %%
@@ -44,23 +44,23 @@ start_link(Args) ->
 %%
 %% Load a specified Plt file. 
 %%
--spec load(Path::string()) -> ok.
-load(File) ->
-  gen_server:call(?MODULE, {load, File}).
+-spec load(pid(), Path::string()) -> ok.
+load(Server, File) ->
+  gen_server:call(Server, {load, File}).
 
 %%
 %% Update all info from the currently loaded file
 %%
--spec update() -> ok.
-update() ->
-  gen_server:call(?MODULE, update).
+-spec update(pid()) -> ok.
+update(Server) ->
+  gen_server:call(Server, update).
 
 %%
 %% Apply a specified function. Plt will be prepended to the list of arguments
 %%
--spec apply({Module::atom(), Func::atom(), Args::list()}) -> any().
-apply(MFA) ->
-  gen_server:call(?MODULE, {apply, MFA}).
+-spec apply(pid(), {Module::atom(), Func::atom(), Args::list()}) -> any().
+apply(Server, MFA) ->
+  gen_server:call(Server, {apply, MFA}).
 
 
 %%%
@@ -68,24 +68,20 @@ apply(MFA) ->
 %%%
 
 init(Args) ->
-  Plt = case proplists:lookup(file, Args) of
-          undefined -> [];
-          {_, File} -> dialyzer_plt:from_file(File)
-        end,
+  File = get_file(Args),
+  Plt = dialyzer_plt:from_file(File),
   Ets = create_and_update_ets(Plt),
-  {ok, #state{plt = Plt, ets = Ets}}.
+  {ok, #state{plt = Plt, ets = Ets, file = File}}.
 
-handle_call({load, File}, _From, #state{ets=Ets0}) ->
+handle_call({load, File}, _From, #state{ets=Ets} = State) ->
   Plt  = dialyzer_plt:from_file(File),
-  Ets1 = ets:delete_all_objects(Ets0),
-  Ets  = update_ets(Ets1, Plt),
-  {reply, ok, #state{ets=Ets, plt=Plt, file=File}};
+  clean_update(Ets, Plt),
+  {reply, ok, State#state{plt=Plt, file=File}};
 
-handle_call(update, _From, #state{ets=Ets0, file=File}) ->
+handle_call(update, _From, #state{ets=Ets, file=File} = State) ->
   Plt  = dialyzer_plt:from_file(File),
-  Ets1 = ets:delete_all_objects(Ets0),
-  Ets  = update_ets(Ets1, Plt),
-  {reply, ok, #state{ets=Ets, plt=Plt}};
+  clean_update(Ets, Plt),
+  {reply, ok, State};
 
 handle_call({apply, {M, F, A}}, _From, #state{plt=Plt} = State) ->
   {reply, erlang:apply(M, F, [Plt | A]), State}.
@@ -106,19 +102,38 @@ terminate(shutdown, #state{ets=Ets}) ->
 %%%
 %%% Internal
 %%%
-  
+
+get_file(Args) ->
+  File = proplists:get_value(file, Args, undefined),
+  case File of
+    undefined -> 
+      case application:get_env(plt_path) of
+        undefined              -> dialyzer_plt:get_default_plt();
+        {ok, {priv_dir, PrivFile}} ->
+            {ok, AppName} = application:get_application(),
+            PrivDir = filename:absname(code:priv_dir(AppName)),
+            filename:absname_join(PrivDir, PrivFile);
+        {ok, PltPath}    -> filename:absname(PltPath)
+      end;
+    Path      -> filename:absname(Path)
+  end.
+
 create_and_update_ets(Plt) ->
   Ets = ets:new(?MODULE, [ ordered_set
                          , public
                          , {write_concurrency,true}
                          , {read_concurrency,true}]),
+  update_ets(Ets, Plt),
+  Ets.
+
+clean_update(Ets, Plt) ->
+  ets:delete_all_objects(Ets),
   update_ets(Ets, Plt).
 
 update_ets(Ets0, Plt) ->
   Modules = sets:to_list(dialyzer_plt:all_modules(Plt)),
   MFAList = get_mfas(Modules, Plt),
-  Ets = ets:insert(Ets0, MFAList),
-  Ets.
+  ets:insert(Ets0, MFAList).
 
 get_mfas(Modules, Plt) -> get_mfas(Modules, Plt, []).
 
