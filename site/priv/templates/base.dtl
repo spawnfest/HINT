@@ -66,15 +66,6 @@
 					</a>
 					<ul class="nav"><li class="divider-vertical"></ul>
 					<div class="nav-collapse">
-						{% block navigation %}
-							<ul class="nav">
-								{% for category in categories %}
-									<li{% ifequal category.link me.category %} class="active"{% endifequal %}>
-										<a href="/{{ category.link }}">{% t caption=category.name %}</a>
-									</li>
-								{% endfor %}
-							</ul>
-						{% endblock %}{# navigation #}
 					</div><!--/.nav-collapse -->
 		
 				</div>

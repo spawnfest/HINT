@@ -30,28 +30,6 @@
 	</div>
 	<div class="span5">
 		<div class="landing language-bar pull-right">
-			<ul>
-				<li><a href="/lang/ru">{% t caption="Russian" %}</a></li>
-				<li><a href="/lang/en">{% t caption="English" %}</a></li>
-			</ul>
-		</div>
-		<div class="landing navigation">
-			<hr /><br />
-			<a href="/demo"><h2 class="visible-desktop">Cowboy</h2></a>
-			<a href="/demo"><h2 class="hidden-desktop">Cowboy</h2></a>			
-			<hr /><br />
-			<a href="/demo"><h2 class="visible-desktop">Erlydtl</h2></a>
-			<a href="/demo"><h2 class="hidden-desktop">Erlydtl</h2></a>
-			<hr /><br />
-			<a href="/demo"><h2 class="visible-desktop">Bootstrap</h2></a>
-			<a href="/demo"><h2 class="hidden-desktop">Bootstrap</h2></a>			
-			<hr /><br />
-			<a href="/demo"><h2 class="visible-desktop">Saloon</h2></a>
-			<a href="/demo"><h2 class="hidden-desktop">Saloon</h2></a>
-			<hr />
-			<div class="pull-right">
-				<img src="/static/img/root/zoid.png" />
-			</div>
 		</div>
 	</div>
 </div>
